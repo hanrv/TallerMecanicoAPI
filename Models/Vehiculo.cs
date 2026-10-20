@@ -2,10 +2,9 @@
 
 namespace TallerMecanicoAPI.Models
 {
-    // Esta clase representa la tabla 'Vehiculos' en SQL Server
     public class Vehiculo
     {
-        [Key] // Llave primaria autoincremental
+        [Key]
         public int Id { get; set; }
 
         [Required(ErrorMessage = "La placa es obligatoria")]
@@ -26,9 +25,15 @@ namespace TallerMecanicoAPI.Models
         public string FallaReportada { get; set; } = string.Empty;
 
         public DateTime FechaIngreso { get; set; } = DateTime.Now;
+
+        // Llave Foránea opcional o requerida hacia Cliente
+        public int? ClienteId { get; set; }
+        public Cliente? Cliente { get; set; }
+
+        // Propiedad de navegación: Un vehículo puede tener muchas órdenes de trabajo
+        public List<OrdenTrabajo> OrdenesTrabajo { get; set; } = new();
     }
 
-    // Modelo para peticiones HTTP PATCH (campos opcionales)
     public class VehiculoPatch
     {
         [MaxLength(50)]
@@ -41,5 +46,7 @@ namespace TallerMecanicoAPI.Models
 
         [MaxLength(250)]
         public string? FallaReportada { get; set; }
+
+        public int? ClienteId { get; set; }
     }
 }
