@@ -10,7 +10,10 @@ namespace TallerMecanicoAPI.Data
         {
         }
 
-        // Representa la tabla Vehiculos en la BD
+        public DbSet<Cliente> Clientes { get; set; }
         public DbSet<Vehiculo> Vehiculos { get; set; }
+        public DbSet<Mecanico> Mecanicos { get; set; }
+        public DbSet<OrdenTrabajo> OrdenesTrabajo { get; set; }
+        public DbSet<Repuesto> Repuestos { get; set; }
     }
 }
