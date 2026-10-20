@@ -1,156 +1,72 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using TallerMecanicoApi.Models;
-
-namespace TallerMecanicoApi.Controllers
+using TallerMecanicoAPI.Data;  
+using TallerMecanicoAPI.Models;
+namespace TallerMecanicoAPI.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]   // ruta base: api/vehiculos
+    [Route("api/[controller]")]
     public class VehiculosController : ControllerBase
     {
-        // La lista es static porque el controller se crea de nuevo en cada
-        // peticion; asi los datos se conservan mientras la API este encendida.
-        private static List<Vehiculo> vehiculos = new List<Vehiculo>
+        private readonly VehiculoDatos _vehiculoDatos;
+
+        public VehiculosController(VehiculoDatos vehiculoDatos)
         {
-            new Vehiculo { Placa = "ABC-123", Marca = "Toyota",  Anio = 2018 },
-            new Vehiculo { Placa = "XYZ-789", Marca = "Hyundai", Anio = 2021 },
-            new Vehiculo { Placa = "LMN-456", Marca = "Toyota",  Anio = 2015 }
-        };
+            _vehiculoDatos = vehiculoDatos;
+        }
 
-        // ===================== GET =====================
-
-        // GET api/vehiculos  -> mostrar todos
         [HttpGet]
-        public ActionResult<List<Vehiculo>> GetTodos()
+        public async Task<ActionResult<List<Vehiculo>>> Get()
         {
-            return Ok(vehiculos);
+            var lista = await _vehiculoDatos.ListarAsync();
+            return Ok(lista);
         }
 
-        // GET api/vehiculos/cantidad  -> contar vehiculos
-        [HttpGet("cantidad")]
-        public ActionResult<int> GetCantidad()
-        {
-            return Ok(vehiculos.Count());
-        }
-
-        // GET api/vehiculos/ABC-123  -> buscar por placa
         [HttpGet("{placa}")]
-        public ActionResult<Vehiculo> GetPorPlaca(string placa)
+        public async Task<ActionResult<Vehiculo>> Get(string placa)
         {
-            Vehiculo? vehiculo = vehiculos
-                .FirstOrDefault(v => v.Placa.ToLower() == placa.ToLower());
-
+            var vehiculo = await _vehiculoDatos.ObtenerPorPlacaAsync(placa);
             if (vehiculo == null)
             {
-                return NotFound("No existe un vehiculo con esa placa.");
+                return NotFound($"Vehículo con placa {placa} no encontrado.");
             }
-
             return Ok(vehiculo);
         }
 
-        // GET api/vehiculos/marca/Toyota  -> buscar por marca (Where)
-        [HttpGet("marca/{marca}")]
-        public ActionResult<List<Vehiculo>> GetPorMarca(string marca)
-        {
-            List<Vehiculo> encontrados = vehiculos
-                .Where(v => v.Marca.ToLower() == marca.ToLower())
-                .ToList();
-
-            return Ok(encontrados);
-        }
-
-        // GET api/vehiculos/desde/2018  -> buscar desde un anio (Where)
-        [HttpGet("desde/{anio:int}")]
-        public ActionResult<List<Vehiculo>> GetDesdeAnio(int anio)
-        {
-            List<Vehiculo> encontrados = vehiculos
-                .Where(v => v.Anio >= anio)
-                .ToList();
-
-            return Ok(encontrados);
-        }
-
-        // ===================== POST =====================
-
-        // POST api/vehiculos  -> registrar un vehiculo nuevo
         [HttpPost]
-        public ActionResult<Vehiculo> Post(Vehiculo nuevo)
+        public async Task<ActionResult<Vehiculo>> Post([FromBody] Vehiculo nuevoVehiculo)
         {
-            // No permitir placas repetidas
-            if (vehiculos.Any(v => v.Placa.ToLower() == nuevo.Placa.ToLower()))
+            bool registrado = await _vehiculoDatos.RegistrarAsync(nuevoVehiculo);
+            if (!registrado)
             {
-                return Conflict("Ya existe un vehiculo con esa placa.");
+                return BadRequest("No se pudo registrar el vehículo.");
             }
 
-            vehiculos.Add(nuevo);
-
-            // 201 Created + ruta para consultar el vehiculo creado
-            return CreatedAtAction(nameof(GetPorPlaca), new { placa = nuevo.Placa }, nuevo);
+            return CreatedAtAction(nameof(Get), new { placa = nuevoVehiculo.Placa }, nuevoVehiculo);
         }
 
-        // ===================== PUT =====================
-
-        // PUT api/vehiculos/ABC-123  -> reemplazar TODOS los datos
-        [HttpPut("{placa}")]
-        public ActionResult<Vehiculo> Put(string placa, Vehiculo datos)
-        {
-            Vehiculo? vehiculo = vehiculos
-                .FirstOrDefault(v => v.Placa.ToLower() == placa.ToLower());
-
-            if (vehiculo == null)
-            {
-                return NotFound("No existe un vehiculo con esa placa.");
-            }
-
-            vehiculo.Marca = datos.Marca;
-            vehiculo.Anio = datos.Anio;
-
-            return Ok(vehiculo);
-        }
-
-        // ===================== PATCH =====================
-
-        // PATCH api/vehiculos/ABC-123  -> cambiar SOLO algunos datos
         [HttpPatch("{placa}")]
-        public ActionResult<Vehiculo> Patch(string placa, VehiculoPatch cambios)
+        public async Task<IActionResult> Patch(string placa, [FromBody] Vehiculo cambios)
         {
-            Vehiculo? vehiculo = vehiculos
-                .FirstOrDefault(v => v.Placa.ToLower() == placa.ToLower());
-
-            if (vehiculo == null)
+            bool modificado = await _vehiculoDatos.ModificarAsync(placa, cambios);
+            if (!modificado)
             {
-                return NotFound("No existe un vehiculo con esa placa.");
+                return NotFound($"No se pudo actualizar: placa {placa} inexistente o sin datos modificados.");
             }
 
-            if (cambios.Marca != null)
-            {
-                vehiculo.Marca = cambios.Marca;
-            }
-
-            if (cambios.Anio != null)
-            {
-                vehiculo.Anio = cambios.Anio.Value;
-            }
-
-            return Ok(vehiculo);
+            var vehiculoActualizado = await _vehiculoDatos.ObtenerPorPlacaAsync(placa);
+            return Ok(vehiculoActualizado);
         }
 
-        // ===================== DELETE =====================
-
-        // DELETE api/vehiculos/ABC-123  -> eliminar un vehiculo
         [HttpDelete("{placa}")]
-        public IActionResult Delete(string placa)
+        public async Task<IActionResult> Delete(string placa)
         {
-            Vehiculo? vehiculo = vehiculos
-                .FirstOrDefault(v => v.Placa.ToLower() == placa.ToLower());
-
-            if (vehiculo == null)
+            bool eliminado = await _vehiculoDatos.EliminarAsync(placa);
+            if (!eliminado)
             {
-                return NotFound("No existe un vehiculo con esa placa.");
+                return NotFound($"Vehículo con placa {placa} no encontrado.");
             }
 
-            vehiculos.Remove(vehiculo);
-
-            return NoContent(); // 204: eliminado, sin contenido
+            return NoContent();
         }
     }
 }
