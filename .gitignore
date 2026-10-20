@@ -55,3 +55,17 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+## Visual Studio y Copilot (Caché y temporales)
+.vs/
+*.user
+*.suo
+*.userprefs
+
+## Compilación y binarios de C# / .NET
+[Bb]in/
+[Oo]bj/
+
+## Publicación y dependencias locales
+publish/
+packages/

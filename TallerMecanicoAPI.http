@@ -1,0 +1,13 @@
+@TallerMecanicoAPI_HostAddress = https://localhost:7279
+
+### Obtener todos los vehículos
+GET {{TallerMecanicoAPI_HostAddress}}/api/vehiculos
+Accept: application/json
+
+### Obtener cantidad de vehículos
+GET {{TallerMecanicoAPI_HostAddress}}/api/vehiculos/cantidad
+Accept: application/json
+
+### Buscar por placa
+GET {{TallerMecanicoAPI_HostAddress}}/api/vehiculos/ABC-123
+Accept: application/json
